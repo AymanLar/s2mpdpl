@@ -37,6 +37,18 @@ def find_music_file(track_name, music_dir):
     
     return best_match, best_score
 
+def get_mpd_path(file_path, music_dir):
+    """Convert absolute file path to MPD-compatible path"""
+    # Get relative path from music directory
+    try:
+        relative_path = os.path.relpath(file_path, music_dir)
+        # Convert to forward slashes for MPD (works on all platforms)
+        mpd_path = relative_path.replace(os.sep, '/')
+        return mpd_path
+    except ValueError:
+        # If file is not in music directory, return absolute path
+        return file_path.replace(os.sep, '/')
+
 def map_playlist_to_local_files():
     """Map Spotify playlist tracks to local music files"""
     try:
@@ -61,9 +73,12 @@ def map_playlist_to_local_files():
         for track in tracks:
             file_path, score = find_music_file(track, music_dir)
             if file_path:
-                playlist.append(file_path)
+                # Convert to MPD-compatible path
+                mpd_path = get_mpd_path(file_path, music_dir)
+                playlist.append(mpd_path)
                 matched_tracks += 1
                 print(f"✓ Matched: {track} -> {os.path.basename(file_path)} ({score}%)")
+                print(f"  Path: {mpd_path}")
             else:
                 print(f"✗ No match found: {track}")
         
