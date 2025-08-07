@@ -1,54 +1,82 @@
 #!/usr/bin/env python3
 """
-s2mpdpl - Spotify to MPD Playlist Converter
-Main script that orchestrates the entire conversion process
+Spotify to MPD Playlist Converter
+Converts Spotify playlists to MPD-compatible M3U playlists
 """
 
 import os
 import sys
-from fetch_pl import fetch_spotify_playlist
+import argparse
+from fetch import get_playlist_tracks
 from mapper import map_playlist_to_local_files
 from config import Config
 
 def main():
-    """Main function to run the complete conversion process"""
-    print("🎵 s2mpdpl - Spotify to MPD Playlist Converter")
-    print("=" * 50)
+    parser = argparse.ArgumentParser(
+        description="Convert Spotify playlist to MPD-compatible M3U playlist"
+    )
+    parser.add_argument(
+        "playlist_url", 
+        help="Spotify playlist URL to convert"
+    )
+    parser.add_argument(
+        "--output", "-o",
+        default=Config.OUTPUT_PLAYLIST_NAME,
+        help="Output playlist name (default: spotify_playlist)"
+    )
+    parser.add_argument(
+        "--music-dir", "-m",
+        default=Config.MUSIC_DIRECTORY,
+        help="Path to your music library directory"
+    )
+    
+    args = parser.parse_args()
+    
+    # Update config with command line arguments
+    Config.OUTPUT_PLAYLIST_NAME = args.output
+    Config.MUSIC_DIRECTORY = args.music_dir
     
     try:
-        # Step 1: Fetch playlist from Spotify
-        print("\n📥 Step 1: Fetching playlist from Spotify...")
-        tracks = fetch_spotify_playlist()
+        print("🎵 Spotify to MPD Playlist Converter")
+        print("=" * 40)
+        
+        # Step 1: Fetch Spotify playlist
+        print("\n📥 Fetching Spotify playlist...")
+        tracks = get_playlist_tracks(args.playlist_url)
         
         if not tracks:
             print("❌ No tracks found in playlist")
             sys.exit(1)
         
-        # Step 2: Map tracks to local files
-        print("\n🔍 Step 2: Mapping tracks to local music files...")
+        # Step 2: Map to local files and create M3U
+        print("\n🔍 Mapping tracks to local music library...")
         playlist = map_playlist_to_local_files()
         
-        if not playlist:
-            print("❌ No tracks could be matched to local files")
+        if playlist:
+            print(f"\n✅ Successfully created M3U playlist: {args.output}.m3u")
+            print(f"📁 Found {len(playlist)} matching tracks")
+            
+            # Optional: Copy to MPD playlist directory
+            mpd_dir = os.path.expanduser(Config.MPD_PLAYLIST_DIR)
+            if os.path.exists(mpd_dir):
+                import shutil
+                source = f"{args.output}.m3u"
+                destination = os.path.join(mpd_dir, f"{args.output}.m3u")
+                shutil.copy2(source, destination)
+                print(f"📋 Copied to MPD playlist directory: {destination}")
+            else:
+                print(f"ℹ️  MPD playlist directory not found: {mpd_dir}")
+                print("   You can manually copy the .m3u file to your MPD playlist directory")
+        else:
+            print("❌ No tracks could be mapped to local files")
             sys.exit(1)
-        
-        # Step 3: Generate final output
-        print("\n✅ Conversion complete!")
-        print(f"Generated playlist: {Config.OUTPUT_PLAYLIST_NAME}.m3u")
-        print(f"Tracks in playlist: {len(playlist)}")
-        
-        # Step 4: Instructions for MPD
-        print("\n📋 To load in MPD:")
-        print(f"1. Copy {Config.OUTPUT_PLAYLIST_NAME}.m3u to your MPD playlist directory")
-        print("2. Run: mpc update")
-        print(f"3. Run: mpc load {Config.OUTPUT_PLAYLIST_NAME}")
-        
+            
     except KeyboardInterrupt:
-        print("\n❌ Operation cancelled by user")
+        print("\n⏹️  Operation cancelled by user")
         sys.exit(1)
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"❌ Error: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
-    main() 
+    main()

@@ -5,39 +5,32 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    """Configuration class for s2mpdpl"""
-    
     # Spotify API Configuration
     SPOTIFY_CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
     SPOTIFY_CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
-    SPOTIFY_REDIRECT_URI = os.getenv('SPOTIFY_REDIRECT_URI', 'http://localhost:8888/callback')
     
     # Music Library Configuration
-    MUSIC_DIRECTORY = os.getenv('MUSIC_DIRECTORY')
+    MUSIC_DIRECTORY = os.getenv('MUSIC_DIRECTORY', '~/Music')
+    
+    # Playlist Configuration
+    OUTPUT_PLAYLIST_NAME = os.getenv('OUTPUT_PLAYLIST_NAME', 'spotify_playlist')
     
     # MPD Configuration
     MPD_PLAYLIST_DIR = os.getenv('MPD_PLAYLIST_DIR', '~/.mpd/playlists/')
     
-    # Playlist Configuration
-    PLAYLIST_URL = os.getenv('PLAYLIST_URL')
-    OUTPUT_PLAYLIST_NAME = os.getenv('OUTPUT_PLAYLIST_NAME', 'spotify_playlist')
-    
     @classmethod
     def validate(cls):
-        """Validate that required configuration is present"""
+        """Validate that all required configuration is present"""
         required_vars = [
-            'SPOTIFY_CLIENT_ID',
-            'SPOTIFY_CLIENT_SECRET',
-            'MUSIC_DIRECTORY',
-            'PLAYLIST_URL'
+            ('SPOTIFY_CLIENT_ID', cls.SPOTIFY_CLIENT_ID),
+            ('SPOTIFY_CLIENT_SECRET', cls.SPOTIFY_CLIENT_SECRET),
+            ('MUSIC_DIRECTORY', cls.MUSIC_DIRECTORY),
         ]
         
         missing_vars = []
-        for var in required_vars:
-            if not getattr(cls, var):
-                missing_vars.append(var)
+        for var_name, var_value in required_vars:
+            if not var_value:
+                missing_vars.append(var_name)
         
         if missing_vars:
             raise ValueError(f"Missing required environment variables: {', '.join(missing_vars)}")
-        
-        return True 
